@@ -1,0 +1,183 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Resource - CrisisConnect{% endblock %}
+
+{% block head %}
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}&callback=initMap" async defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="bi bi-box-fill"></i> Add Resource</h1>
+        <div>
+            <a href="{{ url_for('resources') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Resources
+            </a>
+        </div>
+    </div>
+    
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle-fill"></i> Resources can be allocated to incidents as needed.
+        Provide accurate information to help emergency responders coordinate effectively.
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Resource Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_resource') }}">
+                        <div class="incident-form-section">
+                            <h4>Basic Information</h4>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="name" class="form-label">Resource Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" required 
+                                        placeholder="Name of resource (e.g., 'Medical Supplies', 'Water Bottles')">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="resource_type" class="form-label">Resource Type <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="resource_type" name="resource_type" required>
+                                        <option value="" selected disabled>Select type...</option>
+                                        {% for type in resource_types %}
+                                            <option value="{{ type }}">{{ type|replace('_', ' ')|title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"
+                                    placeholder="Provide details about the resource, including what it contains and any special handling requirements"></textarea>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="incident-form-section">
+                            <h4>Location Information</h4>
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location Description</label>
+                                <input type="text" class="form-control" id="location" name="location"
+                                    placeholder="Address or location description">
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="latitude" class="form-label">Latitude</label>
+                                    <input type="number" class="form-control" id="latitude" name="latitude" step="any">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="longitude" class="form-label">Longitude</label>
+                                    <input type="number" class="form-control" id="longitude" name="longitude" step="any">
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateSelectedLocation()">
+                                            <i class="bi bi-geo-fill"></i> Update Location
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-center">You can also click directly on the map to set location</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="incident-form-section">
+                            <h4>Contribution Details</h4>
+                            <div class="mb-3">
+                                <label for="contact_info" class="form-label">Contact Information</label>
+                                <input type="text" class="form-control" id="contact_info" name="contact_info"
+                                    placeholder="Phone or email (for resource coordination)">
+                                <div class="form-text">This information will be visible to authorized responders only.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="expiration_date" class="form-label">Available Until (Optional)</label>
+                                <input type="datetime-local" class="form-control" id="expiration_date" name="expiration_date">
+                                <div class="form-text">Leave blank if the resource is available indefinitely.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-plus-circle-fill"></i> Add Resource
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Resource Location</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 300px;"></div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Click on the map to select location or use your current location</small>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tips for Resource Management</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Be specific about quantities and units
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Include special handling instructions
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Note any expiration dates if applicable
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Specify exact storage location
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Keep resource inventory updated
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Google Maps Handling -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+
+<script>
+    // Initialize form with user's location if available
+    document.addEventListener('DOMContentLoaded', function() {
+        // If geolocation is available, the map.js script will populate the coordinates
+        
+        // Add event listeners for resource type selection
+        const resourceTypeSelect = document.getElementById('resource_type');
+        if (resourceTypeSelect) {
+            resourceTypeSelect.addEventListener('change', function() {
+                // Adjust form based on resource type
+                // For example, show specific fields for medical vs. food resources
+                console.log('Resource type changed to:', this.value);
+            });
+        }
+    });
+</script>
+{% endblock %}

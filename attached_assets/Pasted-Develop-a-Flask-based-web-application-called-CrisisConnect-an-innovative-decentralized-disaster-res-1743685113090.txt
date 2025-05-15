@@ -1,0 +1,58 @@
+Develop a Flask-based web application called CrisisConnect—an innovative, decentralized disaster response and community aid coordination platform. This application must integrate Gemini AI as a central, intelligent Emergency Admin that drives the entire crisis management process. The system should empower community members, volunteers, and official responders to rapidly share and act upon critical emergency information.
+
+Key Requirements:
+
+User Management & Roles:
+
+Implement secure registration and authentication.
+
+Support multiple user roles (community member, volunteer, emergency responder, and Emergency Admin via Gemini AI).
+
+Incident Reporting & Real-Time Communication:
+
+Allow users to report incidents using text, images, and geolocation data.
+
+Display incidents on an interactive map using APIs (e.g., Google Maps or OpenStreetMap).
+
+Integrate real-time updates using WebSocket or server-sent events.
+
+Gemini AI as Emergency Admin:
+
+Incident Analysis & Triage:
+Gemini AI processes incoming reports, categorizes them by type (fire, flood, medical emergency, etc.), prioritizes based on severity, and automatically dispatches appropriate notifications.
+
+Resource Allocation:
+Analyze incident data to recommend and dynamically match resources (rescue teams, shelters, medical supplies) to critical incidents.
+
+Predictive Analytics & Alerts:
+Continuously analyze weather data, historical incident trends, and current reports to forecast potential crisis zones. Send proactive, targeted alerts to users in at-risk areas.
+
+Command Center Functionality:
+Serve as a virtual command center by coordinating real-time communication between emergency responders, government agencies, NGOs, and community volunteers. Provide decision support by simulating scenarios and suggesting optimal response strategies.
+
+Continuous Learning:
+After incidents, generate detailed reports and refine predictive models based on outcomes and feedback.
+
+Frontend & Dashboard:
+
+Develop a dynamic, responsive UI using a modern JavaScript framework (e.g., React or Vue) that integrates with Flask.
+
+Create a live dashboard for administrators that visualizes incident data, resource allocation, and real-time communication logs.
+
+Integrations & Communication:
+
+Use third-party APIs for weather forecasting, SMS/email notifications (e.g., via Twilio), and push notifications.
+
+Employ Flask-SocketIO (or similar) for real-time communication and dashboard updates.
+
+Security & Data Privacy:
+
+Ensure robust security measures for user data.
+
+Implement role-based access control and data anonymization as needed.
+
+Summary:
+
+Your task is to build CrisisConnect—a comprehensive disaster response platform where Gemini AI acts as the Emergency Admin, autonomously triaging incidents, allocating resources, forecasting risks, and coordinating a unified, real-time emergency response network. The application should combine modern web technologies with advanced AI capabilities to empower communities and streamline crisis management, ultimately enhancing the speed and effectiveness of disaster response efforts.
+
+This prompt encapsulates the complete vision, technical requirements, and innovative integration of Gemini AI into a Flask-based disaster response platform.

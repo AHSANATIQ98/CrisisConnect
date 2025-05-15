@@ -1,0 +1,397 @@
+{% extends "layout.html" %}
+
+{% block title %}
+{% if incident %}Incident: {{ incident.title }}{% else %}Incident Details{% endif %} - CrisisConnect
+{% endblock %}
+
+{% block head %}
+<!-- Custom CSS for incident detail page -->
+{% endblock %}
+
+{% block content %}
+{% if incident %}
+<div class="container" id="incident-detail" data-incident-id="{{ incident.id }}">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+            <i class="bi bi-exclamation-triangle-fill"></i> 
+            {{ incident.title }}
+            <span class="badge bg-{{ incident.severity|replace('critical', 'danger')|replace('high', 'warning')|replace('medium', 'primary')|replace('low', 'info') }}">
+                {{ incident.severity|upper }}
+            </span>
+            <span class="badge bg-{{ incident.status|replace('reported', 'secondary')|replace('validated', 'info')|replace('in_progress', 'primary')|replace('resolved', 'success') }}">
+                {{ incident.status|replace('_', ' ')|title }}
+            </span>
+        </h1>
+        <div>
+            <a href="{{ url_for('incidents') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Incidents
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Incident Details Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Incident Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Basic Details</h6>
+                            <ul class="incident-info-list">
+                                <li>
+                                    <strong>Type:</strong>
+                                    <span>{{ incident.incident_type|replace('_', ' ')|title }}</span>
+                                </li>
+                                <li>
+                                    <strong>Reported by:</strong>
+                                    <span>{{ incident.reporter.username }}</span>
+                                </li>
+                                <li>
+                                    <strong>Date Reported:</strong>
+                                    <span>{{ incident.created_at|string }}</span>
+                                </li>
+                                <li>
+                                    <strong>Last Updated:</strong>
+                                    <span>{{ incident.updated_at|string }}</span>
+                                </li>
+                                <li>
+                                    <strong>People Affected:</strong>
+                                    <span>{{ incident.people_affected or 'Unknown' }}</span>
+                                </li>
+                                {% if incident.resolved_at %}
+                                <li>
+                                    <strong>Resolved At:</strong>
+                                    <span>{{ incident.resolved_at|string }}</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Location</h6>
+                            <ul class="incident-info-list">
+                                <li>
+                                    <strong>Address:</strong>
+                                    <span>{{ incident.address or 'Not specified' }}</span>
+                                </li>
+                                <li>
+                                    <strong>Coordinates:</strong>
+                                    <span>{{ incident.latitude }}, {{ incident.longitude }}</span>
+                                </li>
+                            </ul>
+                            <div id="map" style="height: 200px; border-radius: 0.25rem;"></div>
+                        </div>
+                    </div>
+                    
+                    <h6>Description</h6>
+                    <p>{{ incident.description }}</p>
+                    
+                    {% if incident.ai_analysis %}
+                    <div class="mt-4">
+                        <h6>
+                            <i class="bi bi-robot"></i> AI Analysis
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#aiAnalysisCollapse">
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+                        </h6>
+                        <div class="collapse show" id="aiAnalysisCollapse">
+                            <div class="card card-body bg-light">
+                                <pre class="mb-0" style="white-space: pre-wrap;">{{ incident.ai_analysis }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    {% if current_user.id == incident.reporter_id or current_user.role in ['responder', 'admin'] %}
+                    {% if incident.status != 'resolved' %}
+                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#updateFormCollapse">
+                        <i class="bi bi-pen"></i> Update Incident
+
+                    {% if current_user.id == incident.reporter_id %}
+                    <form method="POST" action="{{ url_for('update_incident', incident_id=incident.id) }}" style="display:inline;">
+                        <input type="hidden" name="update_text" value="Incident marked as resolved by reporter.">
+                        <input type="hidden" name="status" value="resolved">
+                        <button type="submit" class="btn btn-success ms-2">
+                            <i class="bi bi-check-circle"></i> Mark as Resolved
+                        </button>
+                    </form>
+                    {% endif %}
+                    </button>
+                    
+                    <!-- Add Resolved button for reporters -->
+                    {% if current_user.id == incident.reporter_id %}
+                    <form method="POST" action="{{ url_for('update_incident', incident_id=incident.id) }}" style="display:inline;">
+                        <input type="hidden" name="update_text" value="Incident marked as resolved by reporter.">
+                        <input type="hidden" name="status" value="resolved">
+                        <button type="submit" class="btn btn-success ms-2">
+                            <i class="bi bi-check-circle"></i> Mark as Resolved
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
+                    {% endif %}
+                    
+                    {% if current_user.role in ['responder', 'admin'] and incident.status != 'resolved' %}
+                    <button class="btn btn-outline-success ms-2" id="recommend-resources" data-incident-id="{{ incident.id }}">
+                        <i class="bi bi-lightning-fill"></i> AI Resource Recommendations
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Update Form -->
+            <div class="collapse mb-4" id="updateFormCollapse">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Add Update</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('update_incident', incident_id=incident.id) }}">
+                            <div class="mb-3">
+                                <label for="update_text" class="form-label">Update Information</label>
+                                <textarea class="form-control" id="update_text" name="update_text" rows="3" required></textarea>
+                            </div>
+                            
+                            {% if current_user.role in ['responder', 'admin'] %}
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Update Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">Keep current status</option>
+                                    <option value="validated">Validated</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="resolved">Resolved</option>
+                                </select>
+                            </div>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Submit Update
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Resource Recommendations -->
+            <div id="resource-recommendations" class="mb-4"></div>
+            
+            <!-- Updates Feed -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Updates</h5>
+                </div>
+                <div class="card-body">
+                    <div id="incident-updates">
+                        {% if updates %}
+                            {% for update in updates %}
+                                <div class="card mb-2 border-left-primary">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <p class="mb-1">{{ update.update_text }}</p>
+                                                <small class="text-muted">By {{ update.user.username }}</small>
+                                            </div>
+                                            <small class="text-muted">{{ update.created_at|string }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-center text-muted">No updates yet</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Incident Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-center mb-2">Current Status</h6>
+                        <div class="progress">
+                            {% set status_percent = {'reported': 25, 'validated': 50, 'in_progress': 75, 'resolved': 100}[incident.status] %}
+                            <div class="progress-bar bg-{{ incident.status|replace('reported', 'secondary')|replace('validated', 'info')|replace('in_progress', 'primary')|replace('resolved', 'success') }}" 
+                                role="progressbar" style="width: {{ status_percent }}%" 
+                                aria-valuenow="{{ status_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ incident.status|replace('_', ' ')|title }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge rounded-pill bg-secondary py-2 px-3">Reported</span>
+                        <span class="badge rounded-pill bg-info py-2 px-3">Validated</span>
+                        <span class="badge rounded-pill bg-primary py-2 px-3">In Progress</span>
+                        <span class="badge rounded-pill bg-success py-2 px-3">Resolved</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resource Allocations -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-boxes"></i> Allocated Resources</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resource-allocations">
+                        {% if allocated_resources %}
+                            {% for allocation in allocated_resources %}
+                                <div class="alert alert-success">
+                                    <strong>{{ allocation.quantity }} {{ allocation.resource.name }}</strong> 
+                                    allocated by {{ allocation.responder.username if allocation.responder else 'System' }}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-center text-muted">No resources allocated yet</p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if current_user.role in ['responder', 'admin'] and incident.status != 'resolved' %}
+                        <button class="btn btn-outline-primary w-100 mt-3" data-bs-toggle="modal" data-bs-target="#allocate-resource-modal">
+                            <i class="bi bi-plus-circle"></i> Allocate Resources
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Weather Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-cloud"></i> Weather Conditions</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-info btn-sm w-100" onclick="getWeatherPrediction()">
+                        <i class="bi bi-cloud-download"></i> Load Weather Data
+                    </button>
+                    <div id="weather-prediction" class="mt-3">
+                        <p class="text-center text-muted">Click to load weather data for this location</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Share Options -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-share"></i> Share</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText(window.location.href)">
+                            <i class="bi bi-clipboard"></i> Copy Link
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Print Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resource Allocation Modal -->
+<div class="modal fade" id="allocate-resource-modal" tabindex="-1" aria-labelledby="allocateResourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="allocateResourceModalLabel">Allocate Resource</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('allocate_resource') }}">
+                    <input type="hidden" id="resource-id" name="resource_id">
+                    <input type="hidden" id="incident-id" name="incident_id" value="{{ incident.id }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Resource</label>
+                        <p class="form-control-static" id="resource-name-display">Selected Resource</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Confirm Allocation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audio elements for notifications (hidden) -->
+<audio id="update-sound" src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" preload="none"></audio>
+<audio id="allocation-sound" src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" preload="none"></audio>
+
+{% else %}
+<div class="container">
+    <div class="alert alert-danger">
+        <h4 class="alert-heading">Incident Not Found</h4>
+        <p>The incident you're looking for does not exist or has been removed.</p>
+        <hr>
+        <a href="{{ url_for('incidents') }}" class="btn btn-primary">
+            <i class="bi bi-arrow-left"></i> Back to Incidents
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<!-- Google Maps Handling -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+
+<!-- Incidents Functionality -->
+<script src="{{ url_for('static', filename='js/incidents.js') }}"></script>
+
+<script>
+    // Initialize map with single marker
+    document.addEventListener('DOMContentLoaded', function() {
+        // This will be handled by map.js initialization
+        // The incident location will be marked on the map
+        
+        {% if incident %}
+        // Set up to get weather data
+        const weatherBtn = document.querySelector('#weather-prediction button');
+        if (weatherBtn) {
+            weatherBtn.addEventListener('click', function() {
+                // Call the weather prediction function from map.js
+                getWeatherPrediction();
+            });
+        }
+        
+        // Setup copy link button
+        const copyLinkBtn = document.querySelector('button[onclick*="clipboard"]');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', function() {
+                // Show feedback
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="bi bi-check-circle"></i> Link Copied!';
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            });
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}

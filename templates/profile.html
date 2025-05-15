@@ -1,0 +1,200 @@
+{% extends "layout.html" %}
+
+{% block title %}Profile - CrisisConnect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 text-center mb-3 mb-md-0">
+                    <div class="profile-avatar">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <h2>{{ current_user.get_full_name() }}</h2>
+                    <p class="mb-1">@{{ current_user.username }}</p>
+                    <span class="badge bg-primary py-2 px-3">
+                        {{ current_user.role|replace('_', ' ')|title }}
+                    </span>
+                </div>
+                <div class="col-md-8">
+                    <div class="row h-100 align-items-center">
+                        <div class="col-sm-4 mb-3 mb-sm-0">
+                            <div class="text-center">
+                                <div class="h3 mb-0">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <h5>{{ current_user.reported_incidents.count() }}</h5>
+                                <p class="mb-0">Reported Incidents</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-4 mb-3 mb-sm-0">
+                            <div class="text-center">
+                                <div class="h3 mb-0">
+                                    <i class="bi bi-box"></i>
+                                </div>
+                                <h5>{{ current_user.assigned_resources.count() }}</h5>
+                                <p class="mb-0">Resources Allocated</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="text-center">
+                                <div class="h3 mb-0">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                                <h5>{{ current_user.created_at.strftime('%b %Y') }}</h5>
+                                <p class="mb-0">Member Since</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile Content -->
+    <div class="row">
+        <!-- Personal Information -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-person-lines-fill"></i> Personal Information</h5>
+                    <a href="{{ url_for('edit_profile') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                            <span class="text-muted">Full Name:</span>
+                            <span>{{ current_user.get_full_name() }}</span>
+                        </li>
+                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                            <span class="text-muted">Email:</span>
+                            <span>{{ current_user.email }}</span>
+                        </li>
+                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                            <span class="text-muted">Phone:</span>
+                            <span>{{ current_user.phone or 'Not provided' }}</span>
+                        </li>
+                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                            <span class="text-muted">Location:</span>
+                            <span>{{ current_user.location or 'Not provided' }}</span>
+                        </li>
+                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                            <span class="text-muted">Role:</span>
+                            <span>{{ current_user.role|replace('_', ' ')|title }}</span>
+                        </li>
+                        <li class="list-group-item bg-transparent d-flex justify-content-between">
+                            <span class="text-muted">Last Login:</span>
+                            <span>{{ current_user.last_login|string if current_user.last_login else 'Unknown' }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Skills and Resources -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tools"></i> Skills & Resources</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.skills %}
+                        <p>{{ current_user.skills }}</p>
+                        
+                        <!-- Display skills as tags -->
+                        <div class="mt-3">
+                            {% for skill in current_user.skills.split(',') %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ skill.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-emoji-neutral text-muted" style="font-size: 2rem;"></i>
+                            <p class="mt-2 text-muted">No skills or resources listed.</p>
+                            <a href="{{ url_for('edit_profile') }}" class="btn btn-sm btn-outline-primary">
+                                Add Your Skills
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Recent Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if current_user.reported_incidents.count() > 0 %}
+                            {% for incident in current_user.reported_incidents.order_by('created_at desc').limit(5).all() %}
+                                <a href="{{ url_for('view_incident', incident_id=incident.id) }}" class="list-group-item list-group-item-action bg-transparent">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Reported incident: {{ incident.title }}</h6>
+                                        <small>{{ incident.created_at|string }}</small>
+                                    </div>
+                                    <small class="text-muted">Status: {{ incident.status|replace('_', ' ')|title }}</small>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item bg-transparent text-center py-4">
+                                <i class="bi bi-calendar-x text-muted" style="font-size: 2rem;"></i>
+                                <p class="mt-2 text-muted">No recent activity.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if current_user.reported_incidents.count() > 5 %}
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('incidents') }}" class="btn btn-sm btn-outline-primary">
+                        View All Activity
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Options -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear-fill"></i> Account Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="{{ url_for('edit_profile') }}" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil-square"></i> Edit Profile
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-warning">
+                                    <i class="bi bi-shield-lock"></i> Change Password
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-secondary">
+                                    <i class="bi bi-bell"></i> Notification Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

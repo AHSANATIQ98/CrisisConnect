@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Profile - CrisisConnect{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+            <i class="bi bi-person-fill"></i> Edit Profile
+        </h1>
+        <div>
+            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Profile
+            </a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Personal Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('edit_profile') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" 
+                               value="{{ current_user.first_name or '' }}" placeholder="Your first name">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" 
+                               value="{{ current_user.last_name or '' }}" placeholder="Your last name">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" value="{{ current_user.email }}" disabled>
+                    <div class="form-text">Email address cannot be changed</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" 
+                           value="{{ current_user.phone or '' }}" placeholder="Your phone number">
+                    <div class="form-text">For emergency notifications (optional but recommended)</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="location" name="location" 
+                           value="{{ current_user.location or '' }}" placeholder="Your city/area">
+                </div>
+                
+                {% if current_user.role == 'admin' %}
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <select class="form-select" id="role" name="role">
+                        {% for role_id, role_name in roles.items() %}
+                            <option value="{{ role_id }}" {% if current_user.role == role_id %}selected{% endif %}>
+                                {{ role_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label for="skills" class="form-label">Skills & Resources</label>
+                    <textarea class="form-control" id="skills" name="skills" rows="3" 
+                              placeholder="Skills, certifications or resources you can provide (e.g., First Aid, CPR, ham radio, 4x4 vehicle)">{{ current_user.skills or '' }}</textarea>
+                    <div class="form-text">Separate multiple skills with commas</div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Security section could be added here for password changes -->
+</div>
+{% endblock %}

@@ -1,0 +1,382 @@
+{% extends "layout.html" %}
+
+{% block title %}Resources - CrisisConnect{% endblock %}
+
+{% block head %}
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_API_KEY }}&callback=initMap" async defer></script>
+{% endblock %}
+
+{# Import helpers at the beginning #}
+{% from "helpers.html" import is_admin, is_responder with context %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="bi bi-boxes"></i> Resources</h1>
+        <div>
+            {% if current_user.is_authenticated and (is_responder(current_user) or is_admin(current_user)) %}
+                <a href="{{ url_for('add_resource') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle-fill"></i> Add Resource
+                </a>
+            {% elif current_user.is_authenticated %}
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle"></i> 
+                    Only responders and admins can add resources
+                </div>
+            {% else %}
+                <a href="{{ url_for('login') }}?next={{ url_for('add_resource') }}" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right"></i> Login to Add Resources
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Resource Map -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Resource Locations</h5>
+        </div>
+        <div class="card-body p-0">
+            <div id="map" style="height: 400px;"></div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filter Resources</h5>
+        </div>
+        <div class="card-body">
+            <form id="resource-filter-form" method="GET">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="type" class="form-label">Resource Type</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="all" selected>All Types</option>
+                            {% for type in resource_types %}
+                                <option value="{{ type }}">{{ type|replace('_', ' ')|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="all" selected>All Statuses</option>
+                            <option value="available">Available</option>
+                            <option value="allocated">Allocated</option>
+                            <option value="depleted">Depleted</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" name="search" placeholder="Search by name or location...">
+                    </div>
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Resources Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Available Resources</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover" id="resources-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Status</th>
+                            {% if show_all %}
+                            <th scope="col">Contributor</th>
+                            {% endif %}
+                            {% if show_verification %}
+                            <th scope="col">Verified</th>
+                            {% endif %}
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if resources %}
+                            {% for resource in resources %}
+                                <tr{% if current_user.is_authenticated and resource.contributor_id == current_user.id %} class="table-primary"{% endif %}{% if not resource.is_verified %} class="table-warning"{% endif %}>
+                                    <td>{{ resource.name }}
+                                        {% if resource.expiration_date %}
+                                        <span class="badge bg-info" title="Available until {{ resource.expiration_date.strftime('%Y-%m-%d %H:%M') }}">
+                                            Temporary
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ resource.resource_type }}</span>
+                                    </td>
+                                    <td>{{ resource.quantity }}</td>
+                                    <td>{{ resource.location or 'Unknown' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ resource.status|replace('available', 'success')|replace('allocated', 'primary')|replace('depleted', 'danger') }}">
+                                            {{ resource.status|title }}
+                                        </span>
+                                    </td>
+                                    {% if show_all %}
+                                    <td>
+                                        {% if resource.contributor %}
+                                            {{ resource.contributor.username }}
+                                            {% if resource.contact_info %}
+                                            <span class="badge bg-info" title="{{ resource.contact_info }}">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">System</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    {% if show_verification %}
+                                    <td class="text-center">
+                                        <form method="POST" action="{{ url_for('verify_resource', resource_id=resource.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm {% if resource.is_verified %}btn-success{% else %}btn-outline-warning{% endif %}">
+                                                {% if resource.is_verified %}
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                {% else %}
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary view-resource-btn" data-resource-id="{{ resource.id }}">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            
+                                            {% if current_user.is_authenticated %}
+                                                {% if resource.contributor_id == current_user.id or is_admin(current_user) %}
+                                                <button type="button" class="btn btn-outline-secondary edit-resource-btn" data-resource-id="{{ resource.id }}">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                {% endif %}
+                                                
+                                                {% if resource.status == 'available' and resource.is_verified and is_responder(current_user) %}
+                                                <button type="button" class="btn btn-outline-success allocate-resource-btn" data-resource-id="{{ resource.id }}" data-resource-name="{{ resource.name }}">
+                                                    <i class="bi bi-box-arrow-right"></i>
+                                                </button>
+                                                {% endif %}
+                                            {% else %}
+                                                <a href="{{ url_for('login') }}?next={{ url_for('resources') }}" class="btn btn-outline-info">
+                                                    <i class="bi bi-box-arrow-in-right"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="{% if show_all and show_verification %}8{% elif show_all or show_verification %}7{% else %}6{% endif %}" class="text-center">No resources found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resource Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Resources</h5>
+                    <h2 class="card-text">{{ resources|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Available</h5>
+                    <h2 class="card-text">{{ resources|selectattr('status', 'equalto', 'available')|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Allocated</h5>
+                    <h2 class="card-text">{{ resources|selectattr('status', 'equalto', 'allocated')|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resource View Modal -->
+<div class="modal fade" id="view-resource-modal" tabindex="-1" aria-labelledby="viewResourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewResourceModalLabel">Resource Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="resource-details-container">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                {% if current_user.is_authenticated and (is_responder(current_user) or is_admin(current_user)) %}
+                    <button type="button" class="btn btn-primary" id="allocate-from-modal">Allocate</button>
+                {% elif not current_user.is_authenticated %}
+                    <a href="{{ url_for('login') }}?next={{ url_for('resources') }}" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Login to Allocate
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resource Allocation Modal -->
+<div class="modal fade" id="allocate-resource-modal" tabindex="-1" aria-labelledby="allocateResourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="allocateResourceModalLabel">Allocate Resource</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('allocate_resource') }}" id="allocate-form">
+                    <input type="hidden" id="resource-id" name="resource_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Resource</label>
+                        <p class="form-control-static" id="resource-name-display">Selected Resource</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="incident_id" class="form-label">Allocate to Incident</label>
+                        <select class="form-select" id="incident_id" name="incident_id" required>
+                            <option value="" selected disabled>Select incident...</option>
+                            <!-- This would be populated dynamically in a real implementation -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('allocate-form').submit()">
+                    <i class="bi bi-check-circle"></i> Confirm Allocation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Google Maps Handling -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup resource map
+        // This would be implemented in a full application
+        
+        // Setup filter form
+        const filterForm = document.getElementById('resource-filter-form');
+        if (filterForm) {
+            filterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // In a real implementation, this would filter the resources
+                // For now, just show a message
+                alert('Resource filtering would be implemented here');
+            });
+        }
+        
+        // Setup view resource buttons
+        const viewButtons = document.querySelectorAll('.view-resource-btn');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const resourceId = this.getAttribute('data-resource-id');
+                
+                // In a real implementation, this would fetch resource details
+                // For now, just show the modal with a placeholder
+                const modal = new bootstrap.Modal(document.getElementById('view-resource-modal'));
+                
+                // Update content
+                document.getElementById('resource-details-container').innerHTML = `
+                    <h5>Resource #${resourceId}</h5>
+                    <p>Full resource details would be displayed here.</p>
+                `;
+                
+                modal.show();
+            });
+        });
+        
+        // Setup allocate resource buttons
+        const allocateButtons = document.querySelectorAll('.allocate-resource-btn');
+        allocateButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const resourceId = this.getAttribute('data-resource-id');
+                const resourceName = this.getAttribute('data-resource-name');
+                
+                // Populate allocation modal
+                document.getElementById('resource-id').value = resourceId;
+                document.getElementById('resource-name-display').textContent = resourceName;
+                
+                // In a real implementation, this would load active incidents
+                // For now, use a placeholder
+                const incidentSelect = document.getElementById('incident_id');
+                incidentSelect.innerHTML = '';
+                
+                // Add a placeholder option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                defaultOption.textContent = 'Select incident...';
+                incidentSelect.appendChild(defaultOption);
+                
+                // Add some placeholder incidents
+                for (let i = 1; i <= 5; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `Incident #${i} - Example Incident`;
+                    incidentSelect.appendChild(option);
+                }
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('allocate-resource-modal'));
+                modal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

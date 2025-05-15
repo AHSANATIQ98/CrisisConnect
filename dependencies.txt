@@ -1,0 +1,12 @@
+flask
+flask-login
+flask-sqlalchemy
+flask-sse
+flask-wtf
+email-validator
+google-generativeai
+gunicorn
+psycopg2-binary
+redis
+sqlalchemy
+werkzeug

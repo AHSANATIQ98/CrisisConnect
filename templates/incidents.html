@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+
+{% block title %}Incidents - CrisisConnect{% endblock %}
+
+{% block head %}
+<!-- Custom CSS for incidents page -->
+{% endblock %}
+
+{% block scripts %}
+<!-- Google Maps -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>
+    // Set up to load incidents on this page
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof loadIncidents === 'function') {
+            loadIncidents();
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="bi bi-exclamation-triangle-fill"></i> Incidents</h1>
+        <div>
+            <a href="{{ url_for('report_incident') }}" class="btn btn-danger">
+                <i class="bi bi-plus-circle-fill"></i> Report Incident
+            </a>
+        </div>
+    </div>
+    
+    <!-- Map View -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Incident Map</h5>
+        </div>
+        <div class="card-body p-0">
+            <div id="map" style="height: 400px;"></div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filter Incidents</h5>
+        </div>
+        <div class="card-body">
+            <form id="incident-filter-form" method="GET" action="{{ url_for('incidents') }}">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="all" {% if request.args.get('status') == 'all' or request.args.get('status') is none %}selected{% endif %}>All Statuses</option>
+                            <option value="reported" {% if request.args.get('status') == 'reported' %}selected{% endif %}>Reported</option>
+                            <option value="validated" {% if request.args.get('status') == 'validated' %}selected{% endif %}>Validated</option>
+                            <option value="in_progress" {% if request.args.get('status') == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="resolved" {% if request.args.get('status') == 'resolved' %}selected{% endif %}>Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="all" {% if request.args.get('type') == 'all' or request.args.get('type') is none %}selected{% endif %}>All Types</option>
+                            <option value="fire" {% if request.args.get('type') == 'fire' %}selected{% endif %}>Fire</option>
+                            <option value="flood" {% if request.args.get('type') == 'flood' %}selected{% endif %}>Flood</option>
+                            <option value="earthquake" {% if request.args.get('type') == 'earthquake' %}selected{% endif %}>Earthquake</option>
+                            <option value="hurricane" {% if request.args.get('type') == 'hurricane' %}selected{% endif %}>Hurricane</option>
+                            <option value="tornado" {% if request.args.get('type') == 'tornado' %}selected{% endif %}>Tornado</option>
+                            <option value="medical" {% if request.args.get('type') == 'medical' %}selected{% endif %}>Medical Emergency</option>
+                            <option value="power_outage" {% if request.args.get('type') == 'power_outage' %}selected{% endif %}>Power Outage</option>
+                            <option value="infrastructure" {% if request.args.get('type') == 'infrastructure' %}selected{% endif %}>Infrastructure Damage</option>
+                            <option value="other" {% if request.args.get('type') == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="severity" class="form-label">Severity</label>
+                        <select class="form-select" id="severity" name="severity">
+                            <option value="all" {% if request.args.get('severity') == 'all' or request.args.get('severity') is none %}selected{% endif %}>All Severities</option>
+                            <option value="critical" {% if request.args.get('severity') == 'critical' %}selected{% endif %}>Critical</option>
+                            <option value="high" {% if request.args.get('severity') == 'high' %}selected{% endif %}>High</option>
+                            <option value="medium" {% if request.args.get('severity') == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="low" {% if request.args.get('severity') == 'low' %}selected{% endif %}>Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 align-self-end mb-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-filter"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Incident List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Incident Reports{% if incidents %} ({{ incidents|length }}){% endif %}</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if incidents %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <th>Reported</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for incident in incidents %}
+                        <tr>
+                            <td>{{ incident.id }}</td>
+                            <td>{{ incident.title }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ incident.incident_type.replace('_', ' ').title() }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ get_severity_class(incident.severity) }}">{{ incident.severity.upper() }}</span>
+                            </td>
+                            <td>
+                                {% if incident.status == 'reported' %}
+                                <span class="badge bg-secondary">Reported</span>
+                                {% elif incident.status == 'validated' %}
+                                <span class="badge bg-info">Validated</span>
+                                {% elif incident.status == 'in_progress' %}
+                                <span class="badge bg-primary">In Progress</span>
+                                {% elif incident.status == 'resolved' %}
+                                <span class="badge bg-success">Resolved</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ incident.status.replace('_', ' ').title() }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ incident.address if incident.address else 'Unknown' }}</td>
+                            <td>{{ format_timestamp(incident.created_at) }}</td>
+                            <td>
+                                <a href="{{ url_for('view_incident', incident_id=incident.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye-fill"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info m-3">
+                No incidents found matching your criteria.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

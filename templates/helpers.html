@@ -1,0 +1,54 @@
+{# Utility Macros for CrisisConnect Templates #}
+
+{# Check if a user is an admin #}
+{% macro is_admin(user) -%}
+    {{ user.role == 'admin' }}
+{%- endmacro %}
+
+{# Check if a user is a responder #}
+{% macro is_responder(user) -%}
+    {{ user.role == 'responder' or user.role == 'admin' }}
+{%- endmacro %}
+
+{# Get the badge class for incident severity #}
+{% macro severity_badge_class(severity) -%}
+    {%- if severity == 'critical' -%}
+        danger
+    {%- elif severity == 'high' -%}
+        warning
+    {%- elif severity == 'medium' -%}
+        info
+    {%- else -%}
+        success
+    {%- endif -%}
+{%- endmacro %}
+
+{# Get the badge class for incident status #}
+{% macro status_badge_class(status) -%}
+    {%- if status == 'reported' -%}
+        secondary
+    {%- elif status == 'validated' -%}
+        info
+    {%- elif status == 'in_progress' -%}
+        primary
+    {%- elif status == 'resolved' -%}
+        success
+    {%- else -%}
+        dark
+    {%- endif -%}
+{%- endmacro %}
+
+{# Format incident status for display #}
+{% macro format_status(status) -%}
+    {{ status|replace('_', ' ')|title }}
+{%- endmacro %}
+
+{# Format incident type for display #}
+{% macro format_incident_type(type) -%}
+    {{ type|replace('_', ' ')|title }}
+{%- endmacro %}
+
+{# Format resource type for display #}
+{% macro format_resource_type(type) -%}
+    {{ type|replace('_', ' ')|title }}
+{%- endmacro %}

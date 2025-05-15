@@ -1,0 +1,9 @@
+[2025-04-03 16:14:24 +0000] [6793] [INFO] Starting gunicorn 23.0.0
+[2025-04-03 16:14:24 +0000] [6793] [INFO] Listening at: http://0.0.0.0:8000 (6793)
+[2025-04-03 16:14:24 +0000] [6793] [INFO] Using worker: sync
+[2025-04-03 16:14:24 +0000] [6798] [INFO] Booting worker with pid: 6798
+[2025-04-03 16:14:26 +0000] [6793] [INFO] Handling signal: winch
+[2025-04-03 16:14:26 +0000] [6793] [INFO] Handling signal: hup
+[2025-04-03 16:14:26 +0000] [6793] [INFO] Hang up: Master
+[2025-04-03 16:14:26 +0000] [6793] [ERROR] Worker (pid:6798) was sent SIGHUP!
+[2025-04-03 16:14:26 +0000] [6803] [INFO] Booting worker with pid: 6803

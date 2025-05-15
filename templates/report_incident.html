@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+
+{% block title %}Report Incident - CrisisConnect{% endblock %}
+
+{% block head %}
+<!-- Custom CSS for report incident page -->
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="bi bi-exclamation-triangle-fill"></i> Report Incident</h1>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle-fill"></i> Provide as much detail as possible to help emergency responders.
+        Your report will be analyzed by our AI system to determine priority and resource needs.
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Incident Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('report_incident') }}">
+                        <div class="incident-form-section">
+                            <h4>Basic Information</h4>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="title" class="form-label">Incident Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="title" name="title" required 
+                                        placeholder="Brief description (e.g., 'Apartment Fire', 'Flooding on Main St')">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="incident_type" class="form-label">Incident Type <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="incident_type" name="incident_type" required>
+                                        <option value="" selected disabled>Select type...</option>
+                                        {% for type in incident_types %}
+                                            <option value="{{ type }}">{{ type|replace('_', ' ')|title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="description" name="description" rows="4" required
+                                    placeholder="Provide details about the incident, including what happened, visible hazards, and any immediate needs"></textarea>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="severity" class="form-label">Severity <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="severity" name="severity" required>
+                                        <option value="" selected disabled>Select severity...</option>
+                                        {% for severity, description in severity_levels %}
+                                            <option value="{{ severity }}">{{ description }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="people_affected" class="form-label">People Affected</label>
+                                    <input type="number" class="form-control" id="people_affected" name="people_affected" min="0" value="0">
+                                    <div class="form-text">Estimated number of people impacted</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="incident-form-section">
+                            <h4>Location Information</h4>
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Address/Location Description <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="address" name="address" required
+                                    placeholder="Street address or location description">
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="latitude" class="form-label">Latitude <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="latitude" name="latitude" step="any" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="longitude" class="form-label">Longitude <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="longitude" name="longitude" step="any" required>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <div class="d-grid">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateSelectedLocation()">
+                                            <i class="bi bi-geo-fill"></i> Update Location
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-center">You can also click directly on the map to set location</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="bi bi-exclamation-octagon-fill"></i> Submit Incident Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Location</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 300px;"></div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Click on the map to select location or use your current location</small>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Weather Conditions</h5>
+                </div>
+                <div class="card-body">
+                    <div id="weather-prediction">
+                        <p class="text-center text-muted">Select a location to check weather conditions</p>
+                        <button type="button" class="btn btn-outline-info btn-sm d-block mx-auto" onclick="getWeatherPrediction()">
+                            <i class="bi bi-cloud"></i> Check Weather
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Reporting Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Be specific about location details
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Include immediate hazards in description
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Note if vulnerable people are involved
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Estimate number of people affected
+                        </li>
+                        <li class="list-group-item bg-transparent">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Don't put yourself in danger to report
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Google Maps Handling -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+
+<script>
+    // Initialize form with user's location if available
+    document.addEventListener('DOMContentLoaded', function() {
+        // If geolocation is available, the map.js script will populate the coordinates
+        
+        // Add event listeners for incident type selection
+        const incidentTypeSelect = document.getElementById('incident_type');
+        if (incidentTypeSelect) {
+            incidentTypeSelect.addEventListener('change', function() {
+                // Adjust form based on incident type
+                // For example, show specific fields for fire vs. medical emergency
+                console.log('Incident type changed to:', this.value);
+            });
+        }
+        
+        // Add severity explanation tooltips
+        const severitySelect = document.getElementById('severity');
+        if (severitySelect) {
+            severitySelect.addEventListener('change', function() {
+                // Highlight form with color corresponding to severity
+                const form = document.querySelector('form');
+                form.className = form.className.replace(/severity-\w+/g, '');
+                form.classList.add('severity-' + this.value);
+            });
+        }
+    });
+</script>
+{% endblock %}

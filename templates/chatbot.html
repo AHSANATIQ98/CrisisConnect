@@ -1,0 +1,234 @@
+{% extends "layout.html" %}
+
+{% block title %}AI Assistant - CrisisConnect{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card border-0 shadow-sm animate__animated animate__fadeIn">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-robot"></i> CrisisConnect AI Assistant
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i> The AI Assistant can help with emergency procedures, disaster response protocols, and resource management questions. Chat with it to get guidance during crisis situations.
+                </div>
+                
+                <div id="chat-container" class="bg-dark rounded p-3 mb-3" style="height: 400px; overflow-y: auto;">
+                    <!-- Chat messages will be added here -->
+                    <div class="d-flex mb-3">
+                        <div class="chat-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                            <i class="bi bi-robot text-white"></i>
+                        </div>
+                        <div class="chat-message bg-primary text-white p-3 rounded-3 shadow-sm">
+                            <p class="mb-0">Hello! I'm the CrisisConnect Assistant. How can I help you with emergency management or disaster response today?</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Type your message here..." aria-label="Message">
+                    <button class="btn btn-primary" type="button" id="send-button">
+                        <i class="bi bi-send-fill"></i> Send
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="new-chat-button">
+                        <i class="bi bi-plus-circle"></i> New Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm animate__animated animate__fadeIn">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-question-circle"></i> Suggested Questions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 suggested-question">
+                            What should I do during a flood?
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 suggested-question">
+                            How to set up a community shelter?
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 suggested-question">
+                            What resources are needed for a wildfire?
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 suggested-question">
+                            How to coordinate volunteers?
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 suggested-question">
+                            First aid during an earthquake
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-outline-primary w-100 suggested-question">
+                            How to communicate during a power outage?
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.getElementById('chat-container');
+    const chatInput = document.getElementById('chat-input');
+    const sendButton = document.getElementById('send-button');
+    const newChatButton = document.getElementById('new-chat-button');
+    const suggestedQuestions = document.querySelectorAll('.suggested-question');
+    
+    let isNewChat = false;
+    
+    // Function to add user message to chat
+    function addUserMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'd-flex mb-3 justify-content-end';
+        messageDiv.innerHTML = `
+            <div class="chat-message bg-secondary text-white p-3 rounded-3 shadow-sm">
+                <p class="mb-0">${message}</p>
+            </div>
+            <div class="chat-avatar bg-secondary rounded-circle d-flex align-items-center justify-content-center ms-2">
+                <i class="bi bi-person text-white"></i>
+            </div>
+        `;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Function to add AI response to chat
+    function addAIResponse(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'd-flex mb-3';
+        messageDiv.innerHTML = `
+            <div class="chat-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                <i class="bi bi-robot text-white"></i>
+            </div>
+            <div class="chat-message bg-primary text-white p-3 rounded-3 shadow-sm">
+                <p class="mb-0">${message}</p>
+            </div>
+        `;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Function to add typing indicator
+    function addTypingIndicator() {
+        const indicatorDiv = document.createElement('div');
+        indicatorDiv.className = 'd-flex mb-3 typing-indicator';
+        indicatorDiv.innerHTML = `
+            <div class="chat-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                <i class="bi bi-robot text-white"></i>
+            </div>
+            <div class="chat-message bg-primary text-white p-3 rounded-3 shadow-sm">
+                <p class="mb-0">
+                    <span class="typing-dot">.</span>
+                    <span class="typing-dot">.</span>
+                    <span class="typing-dot">.</span>
+                </p>
+            </div>
+        `;
+        chatContainer.appendChild(indicatorDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Function to remove typing indicator
+    function removeTypingIndicator() {
+        const indicator = chatContainer.querySelector('.typing-indicator');
+        if (indicator) {
+            chatContainer.removeChild(indicator);
+        }
+    }
+    
+    // Function to send message to AI and get response
+    function sendMessage(message) {
+        if (!message.trim()) return;
+        
+        // Add user message to chat
+        addUserMessage(message);
+        
+        // Clear input field
+        chatInput.value = '';
+        
+        // Show typing indicator
+        addTypingIndicator();
+        
+        // Send message to backend API
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                is_new_chat: isNewChat
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Add AI response to chat
+            addAIResponse(data.response);
+            
+            // Reset new chat flag
+            isNewChat = false;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            removeTypingIndicator();
+            addAIResponse('Sorry, I encountered an error. Please try again.');
+        });
+    }
+    
+    // Event listener for send button
+    sendButton.addEventListener('click', function() {
+        sendMessage(chatInput.value);
+    });
+    
+    // Event listener for Enter key in input field
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage(chatInput.value);
+        }
+    });
+    
+    // Event listener for new chat button
+    newChatButton.addEventListener('click', function() {
+        // Clear chat container except for the first welcome message
+        while (chatContainer.children.length > 1) {
+            chatContainer.removeChild(chatContainer.lastChild);
+        }
+        
+        isNewChat = true;
+        addAIResponse('Starting a new conversation. How can I help you?');
+    });
+    
+    // Event listeners for suggested questions
+    suggestedQuestions.forEach(button => {
+        button.addEventListener('click', function() {
+            sendMessage(this.textContent.trim());
+        });
+    });
+});
+</script>
+{% endblock %}

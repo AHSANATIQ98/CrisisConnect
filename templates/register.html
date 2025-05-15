@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block title %}Register - CrisisConnect{% endblock %}
+
+{% block content %}
+<div class="container auth-container">
+    <div class="card">
+        <div class="auth-header">
+            <h2><i class="bi bi-shield-fill-check"></i> CrisisConnect</h2>
+            <p class="lead">Emergency Response Platform</p>
+        </div>
+        
+        <div class="card-body p-4">
+            <h3 class="text-center mb-4">Create an Account</h3>
+            
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Your first name">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Your last name">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Your email address" required>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Create a password" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-telephone-fill"></i></span>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number">
+                    </div>
+                    <div class="form-text">For emergency notifications (optional but recommended)</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-alt-fill"></i></span>
+                        <input type="text" class="form-control" id="location" name="location" placeholder="Your city/area">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="community_member">Community Member</option>
+                        <option value="volunteer">Volunteer</option>
+                        <option value="responder">Emergency Responder</option>
+                    </select>
+                    <div class="form-text">Emergency Responder accounts require verification</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="skills" class="form-label">Skills & Resources</label>
+                    <textarea class="form-control" id="skills" name="skills" rows="2" placeholder="Skills, certifications or resources you can provide (e.g., First Aid, CPR, ham radio, 4x4 vehicle)"></textarea>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="terms" required>
+                    <label class="form-check-label" for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+                </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-person-plus-fill"></i> Register
+                    </button>
+                </div>
+            </form>
+            
+            <div class="text-center mt-3">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
